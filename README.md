@@ -27,3 +27,13 @@ gin vs aspnetcore vs springboot vs quarkus
       </td>
    </tr>
 </table>
+
+## Aprovisionar dependencias
+1. **Ejecutar recetas de terraform.**
+
+    Esto aprovisionara las dependencias en el cluster k8s.
+    ```bash
+   cd terraform
+   terraform init
+   terraform apply
+    ```
