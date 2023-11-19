@@ -1,7 +1,5 @@
 # k8s-apis-benchmarking
 Definir entorno para pruebas de apis en k8s bare metal
-gin vs aspnetcore vs springboot vs quarkus
-
 <table border="0">
    <tr>
       <td align="center" valign="middle">
@@ -34,6 +32,9 @@ gin vs aspnetcore vs springboot vs quarkus
     Esto aprovisionara las dependencias en el cluster k8s.
     ```bash
    cd terraform
+   # 0-providers.tf
+   # 1-prometheus-operator-crds.tf
+   # 2-prometheus.tf
    terraform init
    terraform apply
     ```
