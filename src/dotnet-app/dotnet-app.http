@@ -1,0 +1,6 @@
+@dotnet_app_HostAddress = http://localhost:5197
+
+GET {{dotnet_app_HostAddress}}/ping/
+Accept: application/json
+
+###
