@@ -38,6 +38,7 @@ Definir entorno para pruebas de apis en k8s bare metal
    # 3-grafana.tf
    # 4-tempo.tf
    # 5-minio.tf
+   # 6-postgres.tf
    terraform init
    terraform apply
     ```
