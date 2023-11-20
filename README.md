@@ -42,3 +42,13 @@ Definir entorno para pruebas de apis en k8s bare metal
    terraform init
    terraform apply
     ```
+
+2. **Subir imagen de prueba a minio.**
+   ```bash
+   chmod +x minio-upload.sh
+   ./minio-upload images ./minio/images/thumbnail.png
+    ```
+2. **Ejecutar script en postgres.**
+   ```bash
+   
+    ```

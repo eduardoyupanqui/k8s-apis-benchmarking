@@ -9,7 +9,7 @@ data:
     #!/bin/sh
     set -e ; # Have script exit in the event of a failed command.
     MC_CONFIG_DIR="/etc/minio/mc/"
-    MC="/usr/bin/mc --insecure --config-dir ${MC_CONFIG_DIR}"
+    MC="/usr/bin/mc --insecure --config-dir $MC_CONFIG_DIR"
 
     # connectToMinio
     # Use a check-sleep-check loop to wait for MinIO service to be available
@@ -20,7 +20,7 @@ data:
       ACCESS=$(cat /config/rootUser) ; SECRET=$(cat /config/rootPassword) ;
       set +e ; # The connections to minio are allowed to fail.
       echo "Connecting to MinIO server: $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT" ;
-      MC_COMMAND="${MC} alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
+      MC_COMMAND="$MC alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
       $MC_COMMAND ;
       STATUS=$? ;
       until [ $STATUS = 0 ]
@@ -42,7 +42,7 @@ data:
     # Check if the bucket exists, by using the exit code of `mc ls`
     checkBucketExists() {
       BUCKET=$1
-      CMD=$(${MC} ls myminio/$BUCKET > /dev/null 2>&1)
+      CMD=$($MC ls myminio/$BUCKET > /dev/null 2>&1)
       return $?
     }
 
@@ -61,7 +61,7 @@ data:
         if checkBucketExists $BUCKET ; then
           echo "Purging bucket '$BUCKET'."
           set +e ; # don't exit if this fails
-          ${MC} rm -r --force myminio/$BUCKET
+          $MC rm -r --force myminio/$BUCKET
           set -e ; # reset `e` as active
         else
           echo "Bucket '$BUCKET' does not exist, skipping purge."
@@ -73,14 +73,14 @@ data:
         if [ ! -z $OBJECTLOCKING ] ; then
           if [ $OBJECTLOCKING = true ] ; then
               echo "Creating bucket with OBJECTLOCKING '$BUCKET'"
-              ${MC} mb --with-lock myminio/$BUCKET
+              $MC mb --with-lock myminio/$BUCKET
           elif [ $OBJECTLOCKING = false ] ; then
                 echo "Creating bucket '$BUCKET'"
-                ${MC} mb myminio/$BUCKET
+                $MC mb myminio/$BUCKET
           fi
       elif [ -z $OBJECTLOCKING ] ; then
             echo "Creating bucket '$BUCKET'"
-            ${MC} mb myminio/$BUCKET
+            $MC mb myminio/$BUCKET
       else
         echo "Bucket '$BUCKET' already exists."  
       fi
@@ -92,10 +92,10 @@ data:
       if [ ! -z $VERSIONING ] ; then
         if [ $VERSIONING = true ] ; then
             echo "Enabling versioning for '$BUCKET'"
-            ${MC} version enable myminio/$BUCKET
+            $MC version enable myminio/$BUCKET
         elif [ $VERSIONING = false ] ; then
             echo "Suspending versioning for '$BUCKET'"
-            ${MC} version suspend myminio/$BUCKET
+            $MC version suspend myminio/$BUCKET
         fi
         fi
       else
@@ -106,7 +106,7 @@ data:
       # At this point, the bucket should exist, skip checking for existence
       # Set policy on the bucket
       echo "Setting policy of bucket '$BUCKET' to '$POLICY'."
-      ${MC} anonymous set $POLICY myminio/$BUCKET
+      $MC anonymous set $POLICY myminio/$BUCKET
     }
 
     # Try connecting to MinIO instance
@@ -117,7 +117,7 @@ data:
     #!/bin/sh
     set -e ; # Have script exit in the event of a failed command.
     MC_CONFIG_DIR="/etc/minio/mc/"
-    MC="/usr/bin/mc --insecure --config-dir ${MC_CONFIG_DIR}"
+    MC="/usr/bin/mc --insecure --config-dir $MC_CONFIG_DIR"
 
     # AccessKey and secretkey credentials file are added to prevent shell execution errors caused by special characters.
     # Special characters for example : ',",<,>,{,}
@@ -132,7 +132,7 @@ data:
       ACCESS=$(cat /config/rootUser) ; SECRET=$(cat /config/rootPassword) ;
       set +e ; # The connections to minio are allowed to fail.
       echo "Connecting to MinIO server: $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT" ;
-      MC_COMMAND="${MC} alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
+      MC_COMMAND="$MC alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
       $MC_COMMAND ;
       STATUS=$? ;
       until [ $STATUS = 0 ]
@@ -153,7 +153,7 @@ data:
     # checkUserExists ()
     # Check if the user exists, by using the exit code of `mc admin user info`
     checkUserExists() {
-      CMD=$(${MC} admin user info myminio $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) > /dev/null 2>&1)
+      CMD=$($MC admin user info myminio $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) > /dev/null 2>&1)
       return $?
     }
 
@@ -174,7 +174,7 @@ data:
       # Create the user if it does not exist
       if ! checkUserExists ; then
         echo "Creating user '$USER'"
-        cat $MINIO_ACCESSKEY_SECRETKEY_TMP | ${MC} admin user add myminio
+        cat $MINIO_ACCESSKEY_SECRETKEY_TMP | $MC admin user add myminio
       else
         echo "User '$USER' already exists."
       fi
@@ -184,7 +184,7 @@ data:
       # set policy for user
       if [ ! -z $POLICY -a $POLICY != " " ] ; then
           echo "Adding policy '$POLICY' for '$USER'"
-          ${MC} admin policy set myminio $POLICY user=$USER
+          $MC admin policy set myminio $POLICY user=$USER
       else
           echo "User '$USER' has no policy attached."
       fi
@@ -205,7 +205,7 @@ data:
     #!/bin/sh
     set -e ; # Have script exit in the event of a failed command.
     MC_CONFIG_DIR="/etc/minio/mc/"
-    MC="/usr/bin/mc --insecure --config-dir ${MC_CONFIG_DIR}"
+    MC="/usr/bin/mc --insecure --config-dir $MC_CONFIG_DIR"
 
     # connectToMinio
     # Use a check-sleep-check loop to wait for MinIO service to be available
@@ -216,7 +216,7 @@ data:
       ACCESS=$(cat /config/rootUser) ; SECRET=$(cat /config/rootPassword) ;
       set +e ; # The connections to minio are allowed to fail.
       echo "Connecting to MinIO server: $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT" ;
-      MC_COMMAND="${MC} alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
+      MC_COMMAND="$MC alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
       $MC_COMMAND ;
       STATUS=$? ;
       until [ $STATUS = 0 ]
@@ -238,7 +238,7 @@ data:
     # Check if the policy exists, by using the exit code of `mc admin policy info`
     checkPolicyExists() {
       POLICY=$1
-      CMD=$(${MC} admin policy info myminio $POLICY > /dev/null 2>&1)
+      CMD=$($MC admin policy info myminio $POLICY > /dev/null 2>&1)
       return $?
     }
 
@@ -254,7 +254,7 @@ data:
       else
         echo "Policy '$NAME' already exists."
       fi
-      ${MC} admin policy add myminio $NAME /config/$FILENAME.json
+      $MC admin policy add myminio $NAME /config/$FILENAME.json
 
     }
 
@@ -266,7 +266,7 @@ data:
     #!/bin/sh
     set -e ; # Have script exit in the event of a failed command.
     MC_CONFIG_DIR="/etc/minio/mc/"
-    MC="/usr/bin/mc --insecure --config-dir ${MC_CONFIG_DIR}"
+    MC="/usr/bin/mc --insecure --config-dir $MC_CONFIG_DIR"
 
     # AccessKey and secretkey credentials file are added to prevent shell execution errors caused by special characters.
     # Special characters for example : ',",<,>,{,}
@@ -281,7 +281,7 @@ data:
       ACCESS=$(cat /config/rootUser) ; SECRET=$(cat /config/rootPassword) ;
       set +e ; # The connections to minio are allowed to fail.
       echo "Connecting to MinIO server: $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT" ;
-      MC_COMMAND="${MC} alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
+      MC_COMMAND="$MC alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
       $MC_COMMAND ;
       STATUS=$? ;
       until [ $STATUS = 0 ]
@@ -302,7 +302,7 @@ data:
     # checkSvcacctExists ()
     # Check if the svcacct exists, by using the exit code of `mc admin user svcacct info`
     checkSvcacctExists() {
-      CMD=$(${MC} admin user svcacct info myminio $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) > /dev/null 2>&1)
+      CMD=$($MC admin user svcacct info myminio $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) > /dev/null 2>&1)
       return $?
     }
 
@@ -326,9 +326,9 @@ data:
         echo "Creating svcacct '$SVCACCT'"
         # Check if policy file is define
         if [ -z $FILENAME ]; then
-          ${MC} admin user svcacct add --access-key $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --secret-key $(tail -n1 $MINIO_ACCESSKEY_SECRETKEY_TMP) myminio $USER
+          $MC admin user svcacct add --access-key $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --secret-key $(tail -n1 $MINIO_ACCESSKEY_SECRETKEY_TMP) myminio $USER
         else
-          ${MC} admin user svcacct add --access-key $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --secret-key $(tail -n1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --policy /config/$FILENAME.json myminio $USER
+          $MC admin user svcacct add --access-key $(head -1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --secret-key $(tail -n1 $MINIO_ACCESSKEY_SECRETKEY_TMP) --policy /config/$FILENAME.json myminio $USER
         fi
       else
         echo "Svcacct '$SVCACCT' already exists."
@@ -345,7 +345,7 @@ data:
     #!/bin/sh
     set -e ; # Have script exit in the event of a failed command.
     MC_CONFIG_DIR="/etc/minio/mc/"
-    MC="/usr/bin/mc --insecure --config-dir ${MC_CONFIG_DIR}"
+    MC="/usr/bin/mc --insecure --config-dir $MC_CONFIG_DIR"
 
     # connectToMinio
     # Use a check-sleep-check loop to wait for MinIO service to be available
@@ -356,7 +356,7 @@ data:
       ACCESS=$(cat /config/rootUser) ; SECRET=$(cat /config/rootPassword) ;
       set +e ; # The connections to minio are allowed to fail.
       echo "Connecting to MinIO server: $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT" ;
-      MC_COMMAND="${MC} alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
+      MC_COMMAND="$MC alias set myminio $SCHEME://$MINIO_ENDPOINT:$MINIO_PORT $ACCESS $SECRET" ;
       $MC_COMMAND ;
       STATUS=$? ;
       until [ $STATUS = 0 ]
@@ -377,7 +377,7 @@ data:
     # runCommand ($@)
     # Run custom mc command
     runCommand() {
-      ${MC} "$@"
+      $MC "$@"
       return $?
     }
 
