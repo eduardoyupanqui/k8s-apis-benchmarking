@@ -1,0 +1,10 @@
+@go_app_HostAddress = http://localhost:8000
+
+GET {{go_app_HostAddress}}/api/devices/
+Accept: application/json
+
+###
+GET {{go_app_HostAddress}}/health/
+Accept: application/json
+
+###

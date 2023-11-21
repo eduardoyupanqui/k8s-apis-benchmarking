@@ -5,6 +5,7 @@ go 1.21.3
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.1
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
