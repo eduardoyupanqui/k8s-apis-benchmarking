@@ -1,6 +1,10 @@
-@dotnet_app_HostAddress = http://localhost:5197
+@dotnet_app_HostAddress = http://localhost:5171
 
-GET {{dotnet_app_HostAddress}}/ping/
+GET {{dotnet_app_HostAddress}}/api/devices/
+Accept: application/json
+
+###
+GET {{dotnet_app_HostAddress}}/health/
 Accept: application/json
 
 ###
