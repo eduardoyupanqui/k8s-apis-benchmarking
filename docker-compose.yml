@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  minio:
+    image: minio/minio
+    command: server --address 0.0.0.0:9000 --console-address ":9001" /data
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      - minionetwork
+    volumes:
+      - 'minio_data:/data'
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=devops123
+  postgres:
+    image: 'postgres:latest'
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=devops123
+      - PGDATA=/data/postgres
+    networks:
+      - postgres-network
+    volumes:
+      - 'postgres_data:/data/postgres'
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+networks:
+  minionetwork:
+    driver: bridge
+  postgres-network:
+    driver: bridge
+    
+volumes:
+  minio_data:
+    driver: local
+  postgres_data:
+    driver: local
