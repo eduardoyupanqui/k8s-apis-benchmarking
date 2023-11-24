@@ -4,6 +4,11 @@ GET {{dotnet_app_HostAddress}}/api/devices/
 Accept: application/json
 
 ###
+
+GET {{dotnet_app_HostAddress}}/api/images/
+Accept: application/json
+
+###
 GET {{dotnet_app_HostAddress}}/health/
 Accept: application/json
 
