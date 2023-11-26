@@ -1,0 +1,16 @@
+@spring_app_HostAddress = http://localhost:8000
+
+GET {{spring_app_HostAddress}}/api/devices
+Accept: application/json
+
+###
+
+GET {{spring_app_HostAddress}}/api/images
+Accept: application/json
+
+###
+
+GET {{spring_app_HostAddress}}/health
+Accept: application/json
+
+###
