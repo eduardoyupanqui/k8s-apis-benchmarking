@@ -26,6 +26,10 @@ Definir entorno para pruebas de apis en k8s bare metal
    </tr>
 </table>
 
+Proposito:
+    ![Diagram](docs/k8s-apis-benchmarking-dark.png#gh-dark-mode-only)
+    ![Diagram](docs/k8s-apis-benchmarking-white.png#gh-light-mode-only)
+
 ## Aprovisionar dependencias
 1. **Ejecutar recetas de terraform.**
 
@@ -48,7 +52,21 @@ Definir entorno para pruebas de apis en k8s bare metal
    chmod +x minio-upload.sh
    ./minio-upload images ./minio/images/thumbnail.png
     ```
-2. **Ejecutar script en postgres.**
+3. **Ejecutar script en postgres.**
    ```bash
-   
+   kubectl exec -it [pod-name] --  psql -h localhost -U admin --password -p 5432 postgresdb
+   ```
+   ```sql
+   CREATE DATABASE mydb;
+   \c mydb
+   CREATE TABLE public.go_image (
+      id uuid NOT NULL,
+      lastmodified date NOT NULL
+   );
+    ```
+4. **Comandos para ejecutar las apps.**
+   ```bash
+    ```
+5. **Comandos para crear las imágenes de las apps.**
+   ```bash
     ```
