@@ -5,9 +5,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import java.util.Arrays;
-import java.util.List;
-
 @Path("/api/devices")
 public class DevicesResource {
     @GET()
