@@ -27,12 +27,21 @@ services:
     volumes:
       - 'postgres_data:/data/postgres'
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+  prometheus:
+    image: prom/prometheus:v2.40.4
+    ports:
+      - 9090:9090
+    networks:
+      - prometheus-network
+    volumes:
+      - ./deploy/local/prometheus.yml:/etc/prometheus/prometheus.yml
 networks:
   minionetwork:
     driver: bridge
   postgres-network:
     driver: bridge
-    
+  prometheus-network:
+    driver: bridge
 volumes:
   minio_data:
     driver: local

@@ -8,7 +8,7 @@ set -x
 bucket=$1
 path=$2
 
-host='192.168.56.243:9000'
+host='localhost:9000'
 s3_key=admin
 s3_secret=devops123
 
