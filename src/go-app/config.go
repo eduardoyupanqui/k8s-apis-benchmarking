@@ -12,6 +12,9 @@ type Config struct {
 	// Port to run the http server.
 	AppPort int `yaml:"appPort"`
 
+	// OTLP Endpoint to send traces.
+	OTLPEndpoint string `yaml:"otlpEndpoint"`
+
 	// S3 config to connect to a bucket.
 	S3Config S3Config `yaml:"s3"`
 

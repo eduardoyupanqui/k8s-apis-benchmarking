@@ -11,10 +11,58 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/sdk/resource"
+	oteltrace "go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// handler
+var (
+	tracer trace.Tracer
+)
+
+// Console Exporter, only for testing
+func newConsoleExporter() (oteltrace.SpanExporter, error) {
+	return stdouttrace.New()
+}
+
+// OpenTelemetry Protocol Exporter (OTLP) Exporter
+func newOTLPExporter(ctx context.Context, otlpEndpoint string) (oteltrace.SpanExporter, error) {
+	// Change default HTTPS -> HTTP.
+	insecureOpt := otlptracehttp.WithInsecure()
+
+	// Update default OTLP reciver endpoint.
+	endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint)
+
+	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
+}
+
+// TracerProvider is an OpenTelemetry TracerProvider.
+// It provides Tracers to instrumentation so it can trace operational flow through a system.
+func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
+	// Ensure default SDK resources and the required service name are set.
+	r, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName("go-app"),
+	))
+	if err != nil {
+		log.Fatalf("resource.Merge failed: %s", err)
+	}
+
+	return sdktrace.NewTracerProvider(sdktrace.WithBatcher(exp), sdktrace.WithResource(r))
+}
+
+// handler to connect to S3 and Database
 type handler struct {
+	// Prometheus metrics
+	metrics *metrics
+
 	// S3 seesion, should be shared
 	sess *session.Session
 
@@ -30,8 +78,43 @@ func main() {
 	var c Config
 	c.loadConfig("config.yaml")
 
+	// Initializes a new Go Context.
+	ctx := context.Background()
+	// Create console exporter to print traces to the console.
+	// exp, err := newConsoleExporter()
+	exp, err := newOTLPExporter(ctx, c.OTLPEndpoint)
+	if err != nil {
+		log.Fatalf("failed to initialize exporter: %s", err)
+	}
+
+	// Create a new tracer provider with a batch span processor and the given exporter.
+	tp := newTraceProvider(exp)
+
+	// Handle shutdown properly so nothing leaks.
+	defer func() { _ = tp.Shutdown(ctx) }()
+
+	// Registers `tp` as the global trace provider.
+	otel.SetTracerProvider(tp)
+
+	// Finally, set the tracer that can be used for this package.
+	tracer = tp.Tracer("go-app")
+
+	// Create Prometheus registry
+	reg := prometheus.NewRegistry()
+	m := NewMetrics(reg)
+
+	// Create Prometheus HTTP server to expose metrics
+	pMux := http.NewServeMux()
+	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	pMux.Handle("/metrics", promHandler)
+
+	// Start an HTTP server to expose Prometheus metrics in the background.
+	go func() {
+		log.Fatal(http.ListenAndServe(":8081", pMux))
+	}()
+
 	// Initialize Gin handler.
-	h := handler{config: &c}
+	h := handler{config: &c, metrics: m}
 	h.s3Connect()
 	h.dbConnect()
 
@@ -54,8 +137,12 @@ func (h *handler) getDevices(c *gin.Context) {
 
 // getImage downloads image from S3
 func (h *handler) getImage(c *gin.Context) {
+	// Create a new ROOT span to record and trace the request.
+	ctx, span := tracer.Start(c, "HTTP GET /api/images")
+	defer span.End()
+
 	// Download the image from S3.
-	_, err := download(h.sess, h.config.S3Config.Bucket, "thumbnail.png")
+	_, ctx, err := download(h.sess, h.config.S3Config.Bucket, "thumbnail.png", h.metrics, ctx)
 	if err != nil {
 		log.Printf("download failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
@@ -65,7 +152,7 @@ func (h *handler) getImage(c *gin.Context) {
 	// Generate a new image.
 	image := NewImage()
 	// Save the image ID and the last modified date to the database.
-	Save(image, "go_image", h.dbpool)
+	Save(image, "go_image", h.dbpool, h.metrics, ctx)
 
 	c.JSON(http.StatusOK, gin.H{"message": "saved"})
 }
