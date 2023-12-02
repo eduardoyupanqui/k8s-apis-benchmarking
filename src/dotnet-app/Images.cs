@@ -1,9 +1,7 @@
-﻿using System.Data;
-using Amazon.Runtime.Internal;
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Npgsql;
-using NpgsqlTypes;
+using OpenTelemetry.Trace;
 
 namespace dotnet_app;
 
@@ -30,8 +28,14 @@ public record Image(string ImageUUID, DateTime LastModified)
 public class Images
 {
     // Save inserts a newly generated image into the Postgres database.
-    public static async Task Save(Image image, string table, NpgsqlConnection dbpool)
+    public static async Task Save(Image image, string table, NpgsqlConnection dbpool, Metrics m, Tracer tracer)
     {
+        // Create a new CHILD span to record and trace the request.
+        using var span = tracer.StartActiveSpan("SQL INSERT");
+
+        // Get the current time to record the duration of the request.
+	    var now = DateTime.UtcNow;
+
         // Prepare the database query to insert a record.
         var query = string.Format("INSERT INTO {0} VALUES (:id, :lastModified)", table);
 
@@ -42,16 +46,25 @@ public class Images
         cmd.Parameters.AddWithValue("lastModified", image.LastModified);
         await cmd.ExecuteNonQueryAsync();
         await dbpool.CloseAsync();
+
+        // Record the duration of the insert query.
+        m.Duration.WithLabels("db").Observe(DateTime.UtcNow.Subtract(now).TotalSeconds);
     }
 
     //download downloads S3 image and returns last modified date.
-    public static async Task<DateTime> Download(IAmazonS3 client, string bucketName, string objectName)
+    public static async Task<DateTime> Download(IAmazonS3 client, string bucket, string key, Metrics m, Tracer tracer)
     {
+        // Create a new CHILD span to record and trace the request.
+        using var span = tracer.StartActiveSpan("S3 GET");
+
+        // Get the current time to record the duration of the request.
+	    var now = DateTime.UtcNow;
+
         // Prepare the request for the S3 bucket.
         var request = new GetObjectRequest
         {
-            BucketName = bucketName,
-            Key = objectName,
+            BucketName = bucket,
+            Key = key,
         };
 
         // Send the request to the S3 object store to download the image.
@@ -64,6 +77,10 @@ public class Images
         // Read all the image bytes returned by AWS.
         using var ms = new MemoryStream();
         await response.ResponseStream.CopyToAsync(ms);
+
+        // Record the duration of the request to S3.
+        m.Duration.WithLabels("s3").Observe(DateTime.UtcNow.Subtract(now).TotalSeconds);
+
         return response.LastModified;
     }
 }

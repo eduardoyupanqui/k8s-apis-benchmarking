@@ -3,11 +3,46 @@ using dotnet_app;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Prometheus;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 // Load app config from yaml file.
 builder.Configuration.AddYamlFile("config.yaml", optional: false);
+
+var serviceName = "dotnet-app";
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tcb =>
+    {
+        tcb
+        .AddSource(serviceName)
+        .SetResourceBuilder(
+            ResourceBuilder.CreateDefault()
+                .AddService(serviceName: serviceName))
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter(options => {
+            options.Endpoint = new Uri(builder.Configuration["otlpEndpoint"]!);
+            options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+        })
+        ;
+    });
+
+// Create a new tracer provider with a batch span processor and the given exporter.
+builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
+
+// Create Prometheus registry
+builder.Services.AddSingleton(sp => {
+    Prometheus.Metrics.SuppressDefaultMetrics();
+    return new dotnet_app.Metrics(Prometheus.Metrics.DefaultFactory);
+});
+
+// Create Prometheus HTTP server to expose metrics
+builder.Services.AddMetricServer(options =>
+{
+    options.Port = 8081;
+});
 
 // Add services to the container.
 builder.Services.Configure<Config>(builder.Configuration);
@@ -26,27 +61,30 @@ app.MapGet("/health", getHealth);
 app.Run();
 
 // getDevices responds with the list of all connected devices as JSON.
-static Ok<Device[]> getDevices()
+Ok<Device[]> getDevices(Tracer tracer)
 {
     return TypedResults.Ok(Device.GetDevices());
 }
 
 // getImage downloads image from S3
-static async Task<IResult> getImage(HttpRequest request, IAmazonS3 sess, NpgsqlConnection dbpool, IOptions<Config> options)
+async Task<IResult> getImage(HttpRequest request, IAmazonS3 sess, NpgsqlConnection dbpool, dotnet_app.Metrics metrics,Tracer tracer, IOptions<Config> options)
 {
+    // Create a new ROOT span to record and trace the request.
+    using var span = tracer.StartActiveSpan("HTTP GET /api/images");
+
     // Download the image from S3.
-    var _ = await Images.Download(sess, options.Value.s3!.Bucket, "thumbnail.png");
+    var _ = await Images.Download(sess, options.Value.s3!.Bucket, "thumbnail.png", metrics, tracer);
 
     // Generate a new image.
     var image = Image.NewImage();
     // Save the image ID and the last modified date to the database.
-    await Images.Save(image, "go_image", dbpool);
+    await Images.Save(image, "go_image", dbpool, metrics, tracer);
 
     return Results.Ok(new { Message = "saved" });
 }
 
 // getHealth responds with a HTTP 200 or 5xx on error.
-static IResult getHealth()
+IResult getHealth()
 {
     return Results.Ok(new { Status = "up" });
 }

@@ -1,15 +1,21 @@
-@dotnet_app_HostAddress = http://localhost:5171
+@dotnet_app_HostAddress = http://localhost:8000
+@dotnet_app_BackAddress = http://localhost:8081
 
-GET {{dotnet_app_HostAddress}}/api/devices/
+GET {{dotnet_app_HostAddress}}/api/devices
 Accept: application/json
 
 ###
 
-GET {{dotnet_app_HostAddress}}/api/images/
+GET {{dotnet_app_HostAddress}}/api/images
 Accept: application/json
 
 ###
-GET {{dotnet_app_HostAddress}}/health/
+GET {{dotnet_app_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{dotnet_app_BackAddress}}/metrics
 Accept: application/json
 
 ###
