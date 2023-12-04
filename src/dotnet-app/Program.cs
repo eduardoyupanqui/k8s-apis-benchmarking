@@ -23,8 +23,8 @@ builder.Services.AddOpenTelemetry()
                 .AddService(serviceName: serviceName))
         .AddAspNetCoreInstrumentation()
         .AddOtlpExporter(options => {
-            options.Endpoint = new Uri(builder.Configuration["otlpEndpoint"]!);
-            options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+            options.Endpoint = new Uri("http://" + builder.Configuration["otlpEndpoint"]!);
+            options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
         })
         ;
     });
@@ -33,8 +33,8 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
 
 // Create Prometheus registry
+Prometheus.Metrics.SuppressDefaultMetrics();
 builder.Services.AddSingleton(sp => {
-    Prometheus.Metrics.SuppressDefaultMetrics();
     return new dotnet_app.Metrics(Prometheus.Metrics.DefaultFactory);
 });
 

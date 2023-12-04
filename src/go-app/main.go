@@ -14,7 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	oteltrace "go.opentelemetry.io/otel/sdk/trace"
@@ -32,15 +32,15 @@ func newConsoleExporter() (oteltrace.SpanExporter, error) {
 	return stdouttrace.New()
 }
 
-// OpenTelemetry Protocol Exporter (OTLP) Exporter
+// OpenTelemetry Protocol Exporter (OTLP) Exporter Grpc
 func newOTLPExporter(ctx context.Context, otlpEndpoint string) (oteltrace.SpanExporter, error) {
 	// Change default HTTPS -> HTTP.
-	insecureOpt := otlptracehttp.WithInsecure()
+	insecureOpt := otlptracegrpc.WithInsecure()
 
 	// Update default OTLP reciver endpoint.
-	endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint)
+	endpointOpt := otlptracegrpc.WithEndpoint(otlpEndpoint)
 
-	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
+	return otlptracegrpc.New(ctx, insecureOpt, endpointOpt)
 }
 
 // TracerProvider is an OpenTelemetry TracerProvider.

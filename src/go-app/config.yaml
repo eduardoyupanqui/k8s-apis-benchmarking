@@ -1,6 +1,6 @@
 ---
 appPort: 8000
-otlpEndpoint: localhost:4318
+otlpEndpoint: localhost:4317
 s3:
   region: us-west-rack1
   bucket: images

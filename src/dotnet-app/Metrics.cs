@@ -6,7 +6,7 @@ public class Metrics
 {
     public Summary Duration { get; set; }
     public Metrics(IMetricFactory metricFactory){
-        Duration = metricFactory.CreateSummary("myapp_request_duration_seconds", "Duration of the request.", ["op"],
+        Duration = metricFactory.CreateSummary("dotnetapp_request_duration_seconds", "Duration of the request.", ["op"],
         new SummaryConfiguration
         {
             Objectives = new[]
