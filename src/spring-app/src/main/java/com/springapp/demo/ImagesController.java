@@ -6,6 +6,12 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.IOUtils;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +23,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class ImagesController {
@@ -38,60 +45,100 @@ public class ImagesController {
         }
     }
 
+    private static Timer s3RequestDuration;
+    private static Timer postgresRequestDuration;
     @Autowired
     AmazonS3 s3Client;
     @Autowired
     HikariDataSource datasource;
     @Autowired
     Config.S3Config s3Config;
-
-    public ImagesController() {
+    private final Tracer tracer;
+    public ImagesController(MeterRegistry registry, OpenTelemetry openTelemetry){
+        tracer = openTelemetry.getTracer(ImagesController.class.getName(), "0.1.0");
+        s3RequestDuration = Timer.builder("springapp_s3_request_duration_seconds").publishPercentiles(0.9, 0.99)
+                .description("S3 request duration.").register(registry);
+        postgresRequestDuration = Timer.builder("springapp_db_request_duration_seconds").publishPercentiles(0.9, 0.99)
+                .description("Postgres request duration.").register(registry);
     }
-
     @GetMapping("/api/images")
     public Result getImage() throws IOException, SQLException {
-        // Download the image from S3.
-        Date date = download(s3Config.getBucket(), "thumbnail.png");
-        // TODO: convertToLocalDateViaInstant(date)
-        // Generate a new image.
-        var image = Image.NewImage();
-        // Save the image ID and the last modified date to the database.
-        save(image, "go_image");
+        // Create a new ROOT span to record and trace the request.
+        Span parentSpan = tracer.spanBuilder("HTTP GET /api/images").startSpan();
+        try (Scope scope = parentSpan.makeCurrent()) {
 
+            // Download the image from S3.
+            Date date = download(s3Config.getBucket(), "thumbnail.png");
+            // TODO: convertToLocalDateViaInstant(date)
+            // Generate a new image.
+            var image = Image.NewImage();
+
+            // Save the image ID and the last modified date to the database.
+            save(image, "go_image");
+        } finally {
+            parentSpan.end();
+        }
         return new Result("Saved!");
     }
 
     // Save inserts a newly generated image into the Postgres database.
     private void save(Image image, String table) throws SQLException {
-        // Prepare the database query to insert a record.
-        PreparedStatement st = datasource
-                .getConnection()
-                .prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)");
-        st.setObject(1, UUID.fromString(image.ImageUUID));
-        st.setObject(2, image.LastModified);
-        // Execute the query to create a new image record.
-        st.executeUpdate();
-        st.close();
+        // Create a new CHILD span to record and trace the request.
+        Span span = tracer.spanBuilder("SQL INSERT").startSpan();
+
+        // Get the current time to record the duration of the request.
+        long start = System.currentTimeMillis();
+
+        try (Scope scope = span.makeCurrent()) {
+            // Prepare the database query to insert a record.
+            PreparedStatement st = datasource
+                    .getConnection()
+                    .prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)");
+            st.setObject(1, UUID.fromString(image.ImageUUID));
+            st.setObject(2, image.LastModified);
+
+            // Execute the query to create a new image record.
+            st.executeUpdate();
+            st.close();
+        } finally {
+            span.end();
+        }
+
+        long end = System.currentTimeMillis();
+        postgresRequestDuration.record(end - start, TimeUnit.MILLISECONDS);
     }
 
     //download downloads S3 image and returns last modified date.
     private Date download(String bucketName, String key) throws IOException {
-        // Prepare the request for the S3 bucket.
-        GetObjectRequest requestObject = new GetObjectRequest(bucketName, key);
-        // Send the request to the S3 object store to download the image.
-        S3Object object = s3Client.getObject(requestObject);
+        // Create a new CHILD span to record and trace the request.
+        Span span = tracer.spanBuilder("S3 GET").startSpan();
 
-        // Read all the image bytes returned by AWS.
-        IOUtils.toByteArray(object.getObjectContent());
-        object.close();
+        // Get the current time to record the duration of the request.
+        long start = System.currentTimeMillis();
+        try (Scope scope = span.makeCurrent()) {
+            // Prepare the request for the S3 bucket.
+            GetObjectRequest requestObject = new GetObjectRequest(bucketName, key);
 
-        ObjectMetadata objectMetadata = object.getObjectMetadata();
-        Date date = objectMetadata.getLastModified();
-        if (object != null) {
+            // Send the request to the S3 object store to download the image.
+            S3Object object = s3Client.getObject(requestObject);
+
+            // Read all the image bytes returned by AWS.
+            IOUtils.toByteArray(object.getObjectContent());
             object.close();
-        }
 
-        return date;
+            ObjectMetadata objectMetadata = object.getObjectMetadata();
+            Date date = objectMetadata.getLastModified();
+            if (object != null) {
+                object.close();
+            }
+
+            // Record the duration of the request to S3.
+            long end = System.currentTimeMillis();
+            s3RequestDuration.record(end - start, TimeUnit.MILLISECONDS);
+            return date;
+        } finally {
+            span.end();
+        }
     }
 
     public LocalDate convertToLocalDateViaInstant(Date dateToConvert) {

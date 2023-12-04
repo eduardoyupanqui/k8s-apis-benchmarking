@@ -1,4 +1,5 @@
 @spring_app_HostAddress = http://localhost:8000
+@spring_app_BackAddress = http://localhost:8081
 
 GET {{spring_app_HostAddress}}/api/devices
 Accept: application/json
@@ -9,8 +10,12 @@ GET {{spring_app_HostAddress}}/api/images
 Accept: application/json
 
 ###
-
-GET {{spring_app_HostAddress}}/health
+GET {{spring_app_BackAddress}}/actuator/health
 Accept: application/json
 
 ###
+
+GET {{spring_app_BackAddress}}/actuator/prometheus
+
+###
+
