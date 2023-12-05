@@ -8,6 +8,17 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.zaxxer.hikari.HikariDataSource;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +28,13 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties()
 public class Config {
+    private String otlpEndpoint;
+    public String getOtlpEndpoint() {
+        return otlpEndpoint;
+    }
+    public void setOtlpEndpoint(String otlpEndpoint) {
+        this.otlpEndpoint = otlpEndpoint;
+    }
     @ConfigurationProperties(prefix = "s3")
     @Component
     public class S3Config {
@@ -151,5 +169,25 @@ public class Config {
             this.password = password;
         }
     }
+    @Bean
+    public OpenTelemetry openTelemetry() {
+        Resource resource = Resource.getDefault().toBuilder().put(ResourceAttributes.SERVICE_NAME, "spring-app").put(ResourceAttributes.SERVICE_VERSION, "0.1.0").build();
 
+        OtlpGrpcSpanExporter otlpGrpcExporter = OtlpGrpcSpanExporter.builder()
+                .setEndpoint("http://" + otlpEndpoint)
+                .build();
+
+        SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
+                //.addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
+                .addSpanProcessor(BatchSpanProcessor.builder(otlpGrpcExporter).build())
+                .setResource(resource)
+                .build();
+
+        OpenTelemetry openTelemetry = OpenTelemetrySdk.builder()
+                .setTracerProvider(sdkTracerProvider)
+                .setPropagators(ContextPropagators.create(TextMapPropagator.composite(W3CTraceContextPropagator.getInstance(), W3CBaggagePropagator.getInstance())))
+                .buildAndRegisterGlobal();
+
+        return openTelemetry;
+    }
 }

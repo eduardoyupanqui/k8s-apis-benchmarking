@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -91,15 +92,17 @@ public class ImagesController {
 
         try (Scope scope = span.makeCurrent()) {
             // Prepare the database query to insert a record.
-            PreparedStatement st = datasource
-                    .getConnection()
-                    .prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)");
-            st.setObject(1, UUID.fromString(image.ImageUUID));
-            st.setObject(2, image.LastModified);
+            try (Connection connection = datasource.getConnection();
+                 PreparedStatement st = connection.prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)")) {
 
-            // Execute the query to create a new image record.
-            st.executeUpdate();
-            st.close();
+                st.setObject(1, UUID.fromString(image.ImageUUID));
+                st.setObject(2, image.LastModified);
+
+                st.executeUpdate();
+
+            } catch (SQLException e) {
+                throw e;
+            }
         } finally {
             span.end();
         }
