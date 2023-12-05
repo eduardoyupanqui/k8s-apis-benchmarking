@@ -30,7 +30,53 @@ Proposito:
     ![Diagram](docs/k8s-apis-benchmarking-dark.png#gh-dark-mode-only)
     ![Diagram](docs/k8s-apis-benchmarking-white.png#gh-light-mode-only)
 
-## Aprovisionar dependencias
+## Ejecutar apps desde codigo fuente
+1. **Comandos para ejecutar las apps.**
+   ```bash
+   cat run.sh
+   # cd src/dotnet-app
+   #     > dotnet restore
+   #     > dotnet build
+   #     > dotnet run
+
+   # cd src/sprint-app 
+   #     > mvn package
+   #     > mvn install / mvn clean install
+   #     > mvn spring-boot:run
+      
+   #     > mvn clean package spring-boot:repackage
+   #     > java -jar ./target/spring-app-0.0.1-SNAPSHOT.jar
+
+   # cd src/go-app
+   #     > go get -d .
+   #     > go build
+   #     > go run .
+    ```
+## Contruccion de imagenes de los apps
+
+1. **Comandos para crear y subir las imágenes de las apps a docker hub.**
+   ```bash
+   #Crear imagenes por cada app
+   chmod +x build.sh
+   export USERNAMR=eduyupanqui VER=v1 APP_DIR=dotnet-app && ./build.sh
+   export USERNAMR=eduyupanqui VER=v1 APP_DIR=go-app && ./build.sh
+   export USERNAMR=eduyupanqui VER=v1 APP_DIR=spring-app && ./build.sh
+
+    ```
+2. **Validar contenedores per app en local.**
+   ```bash
+   #Levanta las dependencias de las aplicaciones: minio, postgres, prometheus, jaeger
+   docker compose up -d
+
+   # Run dotnet-app
+   docker run --rm -it --network=local-network -p 8000:8000 -p 8081:8081 -v ./deploy/local/config.yaml:/app/config.yaml eduyupanqui/dotnet-app:v1
+   # Run go-app
+   docker run --rm -it --network=local-network -p 8000:8000 -p 8081:8081 -v ./deploy/local/config.yaml:/config.yaml eduyupanqui/go-app:v1
+   # Run spring-app
+   docker run --rm -it --network=local-network -p 8000:8000 -p 8081:8081 -v ./deploy/local/config.yaml:/config/application.yml eduyupanqui/spring-app:v1
+    ```
+
+## Aprovisionar dependencias en kubernetes
 1. **Ejecutar recetas de terraform.**
 
     Esto aprovisionara las dependencias en el cluster k8s.
@@ -63,10 +109,4 @@ Proposito:
       id uuid NOT NULL,
       lastmodified date NOT NULL
    );
-    ```
-4. **Comandos para ejecutar las apps.**
-   ```bash
-    ```
-5. **Comandos para crear las imágenes de las apps.**
-   ```bash
     ```
