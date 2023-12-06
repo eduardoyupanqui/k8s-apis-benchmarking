@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-app
+  namespace: spring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      nodeSelector:
+        service: spring
+      tolerations:
+        - key: service
+          operator: Equal
+          value: spring
+          effect: NoSchedule
+      containers:
+        - name: spring-app
+          image: eduyupanqui/spring-app:v1
+          ports:
+            - name: http
+              containerPort: 8000
+            - name: metrics
+              containerPort: 8081
+          env:
+            - name: GIN_MODE
+              value: release
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: "1"
+            limits:
+              memory: 512Mi
+              cpu: "2"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: metrics
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: metrics
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          volumeMounts:
+            - name: config
+              mountPath: /config/application.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: spring-app

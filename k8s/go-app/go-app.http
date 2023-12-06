@@ -1,0 +1,10 @@
+@go_app_HostAddress = http://192.168.56.244:8000
+
+###
+GET {{go_app_HostAddress}}/api/devices
+Accept: application/json
+
+###
+
+GET {{go_app_HostAddress}}/api/images
+Accept: application/json

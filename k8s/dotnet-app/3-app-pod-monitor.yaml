@@ -1,0 +1,17 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: dotnet-app
+  namespace: monitoring
+  labels:
+    prometheus: main
+spec:
+  namespaceSelector:
+    matchNames:
+      - dotnet
+  selector:
+    matchLabels:
+      app: dotnet-app
+  podMetricsEndpoints:
+    - port: metrics
