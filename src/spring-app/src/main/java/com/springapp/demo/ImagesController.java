@@ -57,9 +57,9 @@ public class ImagesController {
     private final Tracer tracer;
     public ImagesController(MeterRegistry registry, OpenTelemetry openTelemetry){
         tracer = openTelemetry.getTracer(ImagesController.class.getName(), "0.1.0");
-        s3RequestDuration = Timer.builder("springapp_request_duration_seconds").publishPercentiles(0.9, 0.99)
+        s3RequestDuration = Timer.builder("myapp_request_duration_seconds").publishPercentiles(0.9, 0.99)
                 .tag("op","s3").description("S3 request duration.").register(registry);
-        postgresRequestDuration = Timer.builder("springapp_request_duration_seconds").publishPercentiles(0.9, 0.99)
+        postgresRequestDuration = Timer.builder("myapp_request_duration_seconds").publishPercentiles(0.9, 0.99)
                 .tag("op","db").description("Postgres request duration.").register(registry);
     }
     @GetMapping("/api/images")

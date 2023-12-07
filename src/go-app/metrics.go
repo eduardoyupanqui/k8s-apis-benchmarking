@@ -14,7 +14,7 @@ func NewMetrics(reg prometheus.Registerer) *metrics {
 	// Create Prometheus metrics.
 	m := &metrics{
 		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Namespace:  "goapp",
+			Namespace:  "myapp",
 			Name:       "request_duration_seconds",
 			Help:       "Duration of the request.",
 			Objectives: map[float64]float64{0.9: 0.01, 0.99: 0.001},

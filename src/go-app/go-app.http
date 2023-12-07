@@ -15,7 +15,6 @@ Accept: application/json
 ###
 
 GET {{go_app_BackAddress}}/metrics
-Accept: application/json
 
 ###
 

@@ -16,6 +16,5 @@ Accept: application/json
 ###
 
 GET {{dotnet_app_BackAddress}}/metrics
-Accept: application/json
 
 ###
