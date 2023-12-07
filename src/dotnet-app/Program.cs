@@ -116,7 +116,8 @@ public static class MyExtensions
         var dbOptions = Configuration.GetSection("db").Get<DbConfig>()!;
         string url = $"Host={dbOptions.Host};Database={dbOptions.Database};Username={dbOptions.User};Password={dbOptions.Password}";
         // Connect to the Postgres database.
-        services.AddSingleton<NpgsqlConnection>((sp) => new NpgsqlConnection(url));
+        services.AddNpgsqlDataSource(url);
+
         return services;
     }
 }

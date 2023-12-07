@@ -40,12 +40,11 @@ public class Images
         var query = string.Format("INSERT INTO {0} VALUES (:id, :lastModified)", table);
 
         // Execute the query to create a new image record.
-        using var cmd = new NpgsqlCommand(query, dbpool);
         await dbpool.OpenAsync();
+        await using var cmd = new NpgsqlCommand(query, dbpool);
         cmd.Parameters.AddWithValue("id", new Guid(image.ImageUUID));
         cmd.Parameters.AddWithValue("lastModified", image.LastModified);
         await cmd.ExecuteNonQueryAsync();
-        await dbpool.CloseAsync();
 
         // Record the duration of the insert query.
         m.Duration.WithLabels("db").Observe(DateTime.UtcNow.Subtract(now).TotalSeconds);
