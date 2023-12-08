@@ -23,7 +23,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: dotnet-app
-          image: eduyupanqui/dotnet-app:v1
+          image: eduyupanqui/dotnet-app:v2
           ports:
             - name: http
               containerPort: 8000

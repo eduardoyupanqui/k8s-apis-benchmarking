@@ -23,7 +23,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: spring-app
-          image: eduyupanqui/spring-app:v1
+          image: eduyupanqui/spring-app:v2
           ports:
             - name: http
               containerPort: 8000

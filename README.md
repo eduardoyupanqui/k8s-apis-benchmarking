@@ -110,3 +110,29 @@ Proposito:
       lastmodified date NOT NULL
    );
     ```
+
+
+## Desplegar servicios a testear
+1. **Definir node affinity para las apps.**
+   ```bash
+   kubectl label nodes kub-2 service=golang
+   kubectl label nodes kub-3 service=dotnet
+   kubectl label nodes kub-4 service=spring
+    ```
+2. **Creacion de namespaces para las apps.**
+   ```bash
+   kubectl create namespace golang
+   kubectl create namespace dotnet
+   kubectl create namespace spring
+    ```
+3. **Desplegar las apps a k8s.**
+   ```bash
+   cd deploy/k8s/go-app
+   kubectl apply -f '*.yaml'
+   cd ....
+   cd deploy/k8s/dotnet-app
+   kubectl apply -f '*.yaml'
+   cd ....
+   cd deploy/k8s/spring-app
+   kubectl apply -f '*.yaml'
+   ```

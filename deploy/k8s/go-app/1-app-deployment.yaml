@@ -23,7 +23,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: go-app
-          image: eduyupanqui/go-app:v1
+          image: eduyupanqui/go-app:v2
           ports:
             - name: http
               containerPort: 8000

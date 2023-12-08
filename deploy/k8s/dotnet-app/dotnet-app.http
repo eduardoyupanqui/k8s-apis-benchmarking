@@ -1,4 +1,4 @@
-@dotnet_app_HostAddress = http://192.168.56.245:8000
+@dotnet_app_HostAddress = http://192.168.56.246:8000
 
 ###
 GET {{dotnet_app_HostAddress}}/api/devices
