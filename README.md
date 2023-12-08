@@ -62,6 +62,8 @@ Proposito:
    export USERNAMR=eduyupanqui VER=v1 APP_DIR=go-app && ./build.sh
    export USERNAMR=eduyupanqui VER=v1 APP_DIR=spring-app && ./build.sh
 
+   # test client
+   export USERNAMR=eduyupanqui VER=v1 APP_DIR=client-app && ./build.sh
     ```
 2. **Validar contenedores per app en local.**
    ```bash
@@ -112,7 +114,7 @@ Proposito:
     ```
 
 
-## Desplegar servicios a testear
+## Desplegar servicios a k8s
 1. **Definir node affinity para las apps.**
    ```bash
    kubectl label nodes kub-2 service=golang

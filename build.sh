@@ -7,6 +7,7 @@ set -x
 # export USERNAMR=eduyupanqui VER=v1 APP_DIR=go-app && ./build.sh
 # export USERNAMR=eduyupanqui VER=v1 APP_DIR=spring-app && ./build.sh
 # export USERNAMR=eduyupanqui VER=v1 APP_DIR=quarkus-app && ./build.sh
+# export USERNAMR=eduyupanqui VER=v1 APP_DIR=client-app && ./build.sh
 
 # setup default values, use environment variables to override
 USERNAMR="${USERNAMR:-eduyupanqui}"
