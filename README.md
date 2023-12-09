@@ -138,3 +138,10 @@ Proposito:
    cd deploy/k8s/spring-app
    kubectl apply -f '*.yaml'
    ```
+4. **Test las apis con K6.**
+    ```bash
+   cd tests/k6
+   k6 run script_dotnet.js
+   k6 run script_go.js
+   k6 run script_spring.js
+   ```
