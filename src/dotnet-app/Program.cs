@@ -21,7 +21,11 @@ builder.Services.AddOpenTelemetry()
         .SetResourceBuilder(
             ResourceBuilder.CreateDefault()
                 .AddService(serviceName: serviceName))
-        .AddAspNetCoreInstrumentation()
+        .AddAspNetCoreInstrumentation((options) => options.Filter = httpContext =>
+        {
+            // only collect telemetry about "/api/images"
+            return httpContext.Request.Path == "/api/images";
+        })
         .AddOtlpExporter(options => {
             options.Endpoint = new Uri("http://" + builder.Configuration["otlpEndpoint"]!);
             options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
@@ -61,13 +65,13 @@ app.MapGet("/health", getHealth);
 app.Run();
 
 // getDevices responds with the list of all connected devices as JSON.
-Ok<Device[]> getDevices(Tracer tracer)
+static IResult getDevices()
 {
-    return TypedResults.Ok(Device.GetDevices());
+    return Results.Json(Device.GetDevices());
 }
 
 // getImage downloads image from S3
-async Task<IResult> getImage(HttpRequest request, IAmazonS3 sess, NpgsqlConnection dbpool, dotnet_app.Metrics metrics,Tracer tracer, IOptions<Config> options)
+static async Task<IResult> getImage(HttpRequest request, IAmazonS3 sess, NpgsqlConnection dbpool, dotnet_app.Metrics metrics,Tracer tracer, IOptions<Config> options)
 {
     // Create a new ROOT span to record and trace the request.
     using var span = tracer.StartActiveSpan("HTTP GET /api/images");
@@ -80,13 +84,13 @@ async Task<IResult> getImage(HttpRequest request, IAmazonS3 sess, NpgsqlConnecti
     // Save the image ID and the last modified date to the database.
     await Images.Save(image, "go_image", dbpool, metrics, tracer);
 
-    return Results.Ok(new { Message = "saved" });
+    return Results.Json(new { Message = "saved" });
 }
 
 // getHealth responds with a HTTP 200 or 5xx on error.
-IResult getHealth()
+static IResult getHealth()
 {
-    return Results.Ok(new { Status = "up" });
+    return Results.Json(new { Status = "up" });
 }
 
 public static class MyExtensions
