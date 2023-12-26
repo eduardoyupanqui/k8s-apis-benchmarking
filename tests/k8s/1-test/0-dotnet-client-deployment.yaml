@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dotnet-app-client
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        app: dotnet-app-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        job: dotnet-client
+      tolerations:
+        - key: job
+          operator: Equal
+          value: dotnet-client
+          effect: NoSchedule
+      containers:
+        - name: dotnet-app-client
+          image: eduyupanqui/client-app:v1
+          command:
+            - /myapp
+            - -maxClients=500
+            - -scaleInterval=1000
+            - -randomSleep=4000
+            - -target=http://dotnet-app.dotnet:8000/api/devices
+          ports:
+            - name: metrics
+              containerPort: 8081
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 2000m
+            limits:
+              memory: 1Gi
+              cpu: 2000m

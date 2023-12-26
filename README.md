@@ -145,3 +145,96 @@ Proposito:
    k6 run script_go.js
    k6 run script_spring.js
    ```
+## Desplegar clients para testing a k8s
+1. **Definir node affinity para los client-test.**
+   ```bash
+   kubectl label nodes kub-2 job=spring-client
+   kubectl label nodes kub-4 job=golang-client
+   kubectl label nodes kub-5 job=dotnet-client
+    ```
+2. **Desplegar los client tests a k8s.**
+   
+   <table border="0">
+      <tr>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/a92591a79a4ce31660058d7ccc66c79266931f61/topics/dotnet/dotnet.png">ASP.NET_Core</code>
+         </td>
+         <td align="center" valign="middle">
+            <h5>VS</h5>
+         </td>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://avatars.githubusercontent.com/u/7894478">Gin</code>
+         </td>
+      </tr>
+   </table>
+
+   ```bash
+   # test-client-1
+   # dotnet vs go 
+   # endpoint: api/devices
+   cd tests/k8s/1-test
+   kubectl apply -f '*.yaml'
+   ```
+   <table border="0">
+      <tr>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/a92591a79a4ce31660058d7ccc66c79266931f61/topics/dotnet/dotnet.png">ASP.NET_Core</code>
+         </td>
+         <td align="center" valign="middle">
+            <h5>VS</h5>
+         </td>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/spring-boot/spring-boot.png">Spring</code>
+         </td>
+      </tr>
+   </table>
+
+   ```bash
+   # test-client-1 
+   # dotnet vs spring 
+   # endpoint: api/devices
+   cd tests/k8s/2-test
+   kubectl apply -f '*.yaml'
+   ```
+   <table border="0">
+      <tr>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/a92591a79a4ce31660058d7ccc66c79266931f61/topics/dotnet/dotnet.png">ASP.NET_Core</code>
+         </td>
+         <td align="center" valign="middle">
+            <h5>VS</h5>
+         </td>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://avatars.githubusercontent.com/u/7894478">Gin</code>
+         </td>
+      </tr>
+   </table>
+
+   ```bash
+   # test-client-2 
+   # dotnet vs go 
+   # endpoint: api/images
+   cd tests/k8s/3-test
+   kubectl apply -f '*.yaml'
+   ```
+   <table border="0">
+      <tr>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/a92591a79a4ce31660058d7ccc66c79266931f61/topics/dotnet/dotnet.png">ASP.NET_Core</code>
+         </td>
+         <td align="center" valign="middle">
+            <h5>VS</h5>
+         </td>
+         <td align="center" valign="middle">
+            <code><img height="30" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/spring-boot/spring-boot.png">Spring</code>
+         </td>
+      </tr>
+   </table>
+
+   ```bash
+   # test-client-2 
+   # dotnet vs spring 
+   # endpoint: api/images
+   cd tests/k8s/4-test
+   kubectl apply -f '*.yaml'
+   ```

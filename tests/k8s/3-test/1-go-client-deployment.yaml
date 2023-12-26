@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: go-app-client
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        app: go-app-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        job: golang-client
+      tolerations:
+        - key: job
+          operator: Equal
+          value: golang-client
+          effect: NoSchedule
+      containers:
+        - name: go-app-client
+          image: eduyupanqui/client-app:v1
+          command:
+            - /myapp
+            - -maxClients=30
+            - -scaleInterval=4000
+            - -randomSleep=10000
+            - -target=http://go-app.go:8000/api/images
+          ports:
+            - name: metrics
+              containerPort: 8081
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 2000m
+            limits:
+              memory: 1Gi
+              cpu: 2000m
