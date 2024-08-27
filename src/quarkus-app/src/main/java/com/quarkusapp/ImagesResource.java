@@ -1,31 +1,20 @@
 package com.quarkusapp;
 
 import io.agroal.api.AgroalDataSource;
-import jakarta.enterprise.event.ObserverException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import org.postgresql.ds.PGSimpleDataSource;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.utils.IoUtils;
 
-import javax.sql.DataSource;
 import java.io.IOException;
-import java.net.URI;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.UUID;
 
 @Path("/api/images")
@@ -50,11 +39,28 @@ public class ImagesResource {
     @Inject()
     Config.S3Config s3Config;
     @Inject()
-    @Named("customS3Client")
     S3Client s3;
     @Inject
-    @Named("customAgroalDataSource")
     AgroalDataSource dataSource;
+    private final MeterRegistry registry;
+    private static Timer s3Timer;
+    private static Timer dbTimer;
+
+    public ImagesResource(MeterRegistry registry)
+    {
+        this.registry = registry;
+        s3Timer = Timer.builder("myapp_request_duration_seconds")
+                .publishPercentiles(0.9, 0.99)
+                .tags("op", "s3")
+                .description("S3 request duration.").register(registry);
+
+        dbTimer = Timer.builder("myapp_request_duration_seconds")
+                .publishPercentiles(0.9, 0.99)
+                .tags("op", "db")
+                .description("DB request duration.").register(registry);
+
+    }
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Result getImage() throws IOException, SQLException {
@@ -70,37 +76,39 @@ public class ImagesResource {
 
     // Save inserts a newly generated image into the Postgres database.
     private void save(Image image, String table) throws SQLException {
+        Timer.Sample sample = Timer.start(registry);
+
         // Prepare the database query to insert a record.
-        PreparedStatement st = dataSource
-                .getConnection()
-                .prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)");
-        st.setObject(1, UUID.fromString(image.ImageUUID));
-        st.setObject(2, image.LastModified);
-        // Execute the query to create a new image record.
-        st.executeUpdate();
-        st.close();
+        try (var con = dataSource.getConnection();
+             var st = con.prepareStatement("INSERT INTO " + table + " (id, lastmodified) VALUES (?,?)");){
+            st.setObject(1, UUID.fromString(image.ImageUUID));
+            st.setObject(2, image.LastModified);
+            // Execute the query to create a new image record.
+            st.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        sample.stop(dbTimer);
     }
 
     //download downloads S3 image and returns last modified date.
     private Instant download(String bucketName, String key) throws IOException {
+        Timer.Sample sample = Timer.start(registry);
+
         // Prepare the request for the S3 bucket.
         var requestObject = GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key("thumbnail.png")
                 .build();
         // Send the request to the S3 object store to download the image.
-        var object = s3.getObject(requestObject);
-
+        var object = s3.getObjectAsBytes(requestObject);
         // Read all the image bytes returned by AWS.
-        IoUtils.toByteArray(object);
-        object.close();
+        var bytes = object.asByteArray();
+
+        sample.stop(s3Timer);
 
         var objectResponse = object.response();
-        var date = objectResponse.lastModified();
-        if (object != null) {
-            object.close();
-        }
-
-        return date;
+        return objectResponse.lastModified();
     }
 }
